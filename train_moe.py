@@ -156,13 +156,16 @@ def main_worker(gpu, ngpus_per_node, args):
 
     logging.warning(f"Training is FINISHED")
 
+def path_correction(path):
+    return os.path.join(os.path.abspath(os.path.dirname(__file__)),path)
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='Semi G-SSL Training')
     parser.add_argument('--path', '-p', type=str, help='config path')
     cli_parser = parser.parse_args()
 
-    config = config_parser('./config/semi_gssl_cifar10_4000_default.yaml', cli_parser.path)
+    config = config_parser(path_correction('config/semi_gssl_cifar10_4000_default.yaml'), cli_parser.path)
     args = config.get()
 
     # set save_name
