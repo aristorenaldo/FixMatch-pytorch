@@ -1,0 +1,6 @@
+save_name: semitest
+# save
+overwrite: True
+# training
+num_train_iter: 10 # 1048576 # 2^20
+num_eval_iter: 5
