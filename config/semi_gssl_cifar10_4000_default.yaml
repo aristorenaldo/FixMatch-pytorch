@@ -1,0 +1,49 @@
+experimment: 'Semi Gated SSL Cifar10'
+
+# save
+save_dir: ./saved_model
+save_name: semi_gssl
+tb_dir: ./tblog
+overwrite: False
+load_path: null
+resume: False
+
+# training
+epoch: 1
+num_train_iter: 1048576 # 1048576 # 2^20 
+num_eval_iter: 10000 # evaluation frequency
+num_labels: 4000 # bisa diganti
+batch_size: 64
+uratio: 7
+eval_batch_size: 128
+
+ema_m: 0.999
+
+# Gated SSL
+arch: Moe1 # Moe1, Lorot, Nomoe
+ssl_ratio: 1
+
+# optimizer
+lr: 0.03
+momentum: 0.9
+weight_decay: 5.0e-4
+amp: True
+
+# dataset
+data_dir: ./data
+dataset: cifar10
+train_sampler: RandomSampler
+num_classes: 10 # cifar100 100
+num_workers: 1
+
+# model
+net: WideResNet
+depth: 28
+widen_factor: 2
+leaky_slope: 0.1
+# bn_momentum: 0.0010000000000000009 # 1-ema_n
+dropout: 0.0
+
+# gpu
+gpu: 0
+seed: 0

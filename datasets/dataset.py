@@ -23,6 +23,7 @@ class BasicDataset(Dataset):
                  use_strong_transform=False,
                  strong_transform=None,
                  onehot=False,
+                 return_weak=True,
                  *args, **kwargs):
         """
         Args
@@ -41,14 +42,18 @@ class BasicDataset(Dataset):
         self.num_classes = num_classes
         self.use_strong_transform = use_strong_transform
         self.onehot = onehot
+        self.return_weak = return_weak
         
         self.transform = transform
         if use_strong_transform:
             if strong_transform is None:
                 self.strong_transform = copy.deepcopy(transform)
                 self.strong_transform.transforms.insert(0, RandAugment(3,5))
-        else:
-            self.strong_transform = strong_transform
+            else:
+                self.strong_transform = strong_transform
+                # print(self.strong_transform)    
+
+        
                 
     
     def __getitem__(self, idx):
@@ -77,6 +82,8 @@ class BasicDataset(Dataset):
             img_w = self.transform(img)
             if not self.use_strong_transform:
                 return img_w, target
+            elif self.return_weak:
+                return self.strong_transform(img), target
             else:
                 return img_w, self.strong_transform(img), target
 

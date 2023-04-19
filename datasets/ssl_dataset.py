@@ -113,7 +113,6 @@ class SSL_Dataset:
         lb_data, lb_targets, ulb_data, ulb_targets = split_ssl_data(data, targets, 
                                                                     num_labels, num_classes, 
                                                                     index, include_lb_to_ulb)
-        
         lb_dset = BasicDataset(lb_data, lb_targets, num_classes, 
                                transform, False, None, onehot)
         

@@ -4,6 +4,8 @@ from torch.optim.lr_scheduler import LambdaLR
 import torch.nn.functional as F
 
 import math
+import random
+import itertools
 import time
 import os
 
@@ -28,7 +30,10 @@ class TBLog:
             suffix = ''
         
         for key, value in tb_dict.items():
-            self.writer.add_scalar(suffix+key, value, it)         
+            if isinstance(value, dict):
+                self.writer.add_scalars(suffix+key, value, it)
+            else: 
+                self.writer.add_scalar(suffix+key, value, it)         
 
             
 class AverageMeter(object):
@@ -152,3 +157,123 @@ def ce_loss(logits, targets, use_hard_labels=True, reduction='none'):
         log_pred = F.log_softmax(logits, dim=-1)
         nll_loss = torch.sum(-targets*log_pred, dim=1)
         return nll_loss
+
+def shuffle_channel(img: torch.Tensor, index_shuffle: int) -> torch.Tensor:
+    """Mengacak urutan dimensi RGB sebagai bentuk transformasi
+
+    Parameters
+    ----------
+    img : torch.Tensor
+        Pixel image RGB
+
+    index_shuffle : int
+        Index pengacakan berdasarkan kombinasi RGB
+    Returns
+    -------
+    torch.Tensor
+        Shuffled result image
+    """
+    if not isinstance(img, torch.Tensor):
+        img = torch.tensor(img)
+
+    list_to_permutations = list(itertools.permutations(range(3), 3))
+    return img[list_to_permutations[index_shuffle], ...]
+
+class SslTransform(object):
+    '''
+    Wrapper for SSL Transformation
+
+    Parameter
+    ---------
+    transform_all : bool
+        Use all of the SSL transformation (Lorot, Flip, ShuffleChannel) if True, 
+        else use Lorot-I (default True)
+    
+    Returns
+    -------
+    image : torch.Tensor
+        Transformed image
+    ssl_labels : int | tupple
+        SSL label
+    '''
+    def __init__(self, transform_all:bool=True) -> None:
+        assert isinstance(transform_all,bool)
+        self.transform_all = transform_all
+
+    def __transform_all(self, image):
+        # print(image.shape)
+        flip_label = random.randint(0, 1)
+        sc_label = random.randint(0, 5)
+
+        idx = random.randint(0, 3)
+        idx2 = random.randint(0, 3)
+        r2 = image.size(1)
+        r = r2 // 2
+        
+        if idx == 0:
+            w1 = 0
+            w2 = r
+            h1 = 0
+            h2 = r
+        elif idx == 1:
+            w1 = 0
+            w2 = r
+            h1 = r
+            h2 = r2
+        elif idx == 2:
+            w1 = r
+            w2 = r2
+            h1 = 0
+            h2 = r
+        elif idx == 3:
+            w1 = r
+            w2 = r2
+            h1 = r
+            h2 = r2
+        if flip_label:
+            image[:, w1:w2, h1:h2] = torch.flip(image[:, w1:w2, h1:h2], [2])
+        # lorot
+        image[:, w1:w2, h1:h2] = torch.rot90(image[:, w1:w2, h1:h2], idx2, [1,2])
+        # shuffle channel
+        image[:, w1:w2, h1:h2] = shuffle_channel(image[:, w1:w2, h1:h2], sc_label)
+
+        rot_label = idx * 4 + idx2
+        ssl_label = (rot_label, flip_label, sc_label)
+
+        return image, ssl_label
+    
+    def __transform_lorot(self, image):
+        idx = random.randint(0, 3)
+        idx2 = random.randint(0, 3)
+        r2 = image.size(1)
+        r = r2 // 2
+        if idx == 0:
+            w1 = 0
+            w2 = r
+            h1 = 0
+            h2 = r
+        elif idx == 1:
+            w1 = 0
+            w2 = r
+            h1 = r
+            h2 = r2
+        elif idx == 2:
+            w1 = r
+            w2 = r2
+            h1 = 0
+            h2 = r
+        elif idx == 3:
+            w1 = r
+            w2 = r2
+            h1 = r
+            h2 = r2
+        image[:, w1:w2, h1:h2] = torch.rot90(image[:, w1:w2, h1:h2], idx2, [1,2])
+        rot_label = idx * 4 + idx2
+        return image, rot_label
+    
+    def __call__(self, image: torch.Tensor):
+        assert isinstance(image, torch.Tensor)
+        # print(image)
+        if self.transform_all:
+            return self.__transform_all(image)
+        return self.__transform_lorot(image)
