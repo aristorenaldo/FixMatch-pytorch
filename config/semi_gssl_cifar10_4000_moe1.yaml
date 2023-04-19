@@ -1,0 +1,16 @@
+# save
+save_name: semi_gssl1
+
+# training
+
+# Gated SSL
+ssl_ratio: 0.1
+
+# optimizer
+
+# dataset
+num_workers: 2
+
+# model
+
+# gpu
