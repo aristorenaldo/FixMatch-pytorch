@@ -1,0 +1,7 @@
+experiment:
+  meta:
+    name: SmallerBatchsize
+  training:
+    batch_size: 128
+  another:
+   a: 1
