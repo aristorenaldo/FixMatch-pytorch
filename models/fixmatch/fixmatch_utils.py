@@ -27,7 +27,7 @@ def consistency_loss(logits_w, logits_s, name='ce', T=1.0, p_cutoff=0.0, use_har
     elif name == 'ce':
         pseudo_label = torch.softmax(logits_w, dim=-1)
         max_probs, max_idx = torch.max(pseudo_label, dim=-1)
-        mask = max_probs.ge(p_cutoff).float()
+        mask = max_probs.ge(p_cutoff).float() # greater than p_cutoff
         
         if use_hard_labels:
             masked_loss = ce_loss(logits_s, max_idx, use_hard_labels, reduction='none') * mask

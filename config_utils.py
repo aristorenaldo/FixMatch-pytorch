@@ -51,14 +51,13 @@ class Config(object):
         cfg = {}
         if config_path is not None:
             with open(config_path) as cf_file:
-                cfg = yaml.safe_load( cf_file.read()    )
-       
-        if default_path is not None:
-            with open(default_path) as def_cf_file:
-                default_cfg = yaml.safe_load( def_cf_file.read())
+                cfg = yaml.safe_load( cf_file.read())     
+        
+        with open(default_path) as def_cf_file:
+            default_cfg = yaml.safe_load( def_cf_file.read())
 
-            dict_merge(default_cfg, cfg)
-            
+        dict_merge(default_cfg, cfg)
+
         self._data = default_cfg
     
     def get(self, path=None, default=None):

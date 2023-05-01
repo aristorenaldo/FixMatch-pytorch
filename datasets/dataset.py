@@ -83,9 +83,9 @@ class BasicDataset(Dataset):
             if not self.use_strong_transform:
                 return img_w, target
             elif self.return_weak:
-                return self.strong_transform(img), target
-            else:
                 return img_w, self.strong_transform(img), target
+            else:
+                return self.strong_transform(img), target
 
     
     def __len__(self):

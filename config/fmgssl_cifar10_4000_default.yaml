@@ -1,0 +1,53 @@
+experimment: 'Fixmatch Gated SSL Cifar10'
+
+# save
+save_dir: ./saved_model
+save_name: fmgssl
+tb_dir: ./tblog
+overwrite: False
+load_path: null
+resume: False
+
+# training and fixmatch 
+epoch: 1
+num_train_iter: 1048576 # 1048576 # 2^20 
+num_eval_iter: 10000 # evaluation frequency
+num_labels: 4000 # bisa diganti
+batch_size: 64
+uratio: 7 # the ratio of unlabeled data to labeld data in each mini-batch'
+eval_batch_size: 128
+
+hard_label: True
+T: 0.5 # Temperature scaling parameter for output sharpening (only when hard_label = False)
+p_cutoff: 0.95 # confidence cutoff parameters for loss masking
+ema_m: 0.999
+ulb_loss_ratio: 1.0
+
+# Gated SSL
+arch: Moe1 # Moe1, Lorot, Nomoe
+ssl_ratio: 0.1
+
+# optimizer
+lr: 0.03
+momentum: 0.9
+weight_decay: 5.0e-4
+amp: True
+
+# dataset
+data_dir: ./data
+dataset: cifar10
+train_sampler: RandomSampler
+num_classes: 10 # cifar100 100
+num_workers: 1
+
+# model
+net: WideResNet
+depth: 28
+widen_factor: 2
+leaky_slope: 0.1
+# bn_momentum: 0.0010000000000000009 # 1-ema_n
+dropout: 0.0
+
+# gpu
+gpu: 0
+seed: 0

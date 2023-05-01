@@ -7,6 +7,7 @@ from torch.utils.data.sampler import BatchSampler
 from .augmentation.randaugment import RandAugment
 from .data_utils import get_sampler_by_name, get_data_loader, get_onehot, split_ssl_data
 from .dataset import BasicDataset
+from train_utils import SslTransform
 
 import torchvision
 from torchvision import datasets, transforms
@@ -120,3 +121,44 @@ class SSL_Dataset:
                                transform, use_strong_transform, strong_transform, onehot)
         
         return lb_dset, ulb_dset
+    
+    def get_fmgssl_dataset(self, arch, num_labels, index=None, include_lb_to_ulb=True,
+                            use_strong_transform=True, strong_transform=None, 
+                            onehot=False):
+        """
+        get_fmgssl_dset split training samples into labeled and unlabeled samples.
+        The labeled data is balanced samples over classes.
+        
+        Args:
+            num_labels: number of labeled data.
+            arch: architecture of the gssl network
+            index: If index of np.array is given, labeled data is not randomly sampled, but use index for sampling.
+            include_lb_to_ulb: If True, consistency regularization is also computed for the labeled data.
+            use_strong_transform: If True, unlabeld dataset returns weak & strong augmented image pair. 
+                                  If False, unlabeled datasets returns only weak augmented image.
+            strong_transform: list of strong transform (RandAugment in FixMatch)
+            oenhot: If True, the target is converted into onehot vector.
+            
+        Returns:
+            BasicDataset (for labeled data), BasicDataset (for unlabeld data)
+        """
+
+        data, targets = self.get_data()
+        num_classes = self.num_classes
+        transform = self.transform
+
+        lb_data, lb_targets, ulb_data, ulb_targets = split_ssl_data(data, targets, 
+                                                                    num_labels, num_classes, 
+                                                                    index, include_lb_to_ulb)
+        lb_dset = BasicDataset(lb_data, lb_targets, num_classes, 
+                               transforms.Compose([
+                                   transform,
+                                   SslTransform(transform_all= False if arch == 'Lorot' else True)
+                               ]), 
+                               False, None, onehot)
+        
+        ulb_dset = BasicDataset(ulb_data, ulb_targets, num_classes, 
+                               transform, use_strong_transform, strong_transform, onehot)
+        
+        return lb_dset, ulb_dset
+
