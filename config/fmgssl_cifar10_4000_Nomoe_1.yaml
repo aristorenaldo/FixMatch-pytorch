@@ -1,0 +1,21 @@
+experimment: 'Fixmatch Gated SSL Cifar10'
+
+# save
+save_name: fmgssl_1
+
+
+# training and fixmatch 
+
+# Gated SSL
+arch: Nomoe # Moe1, Lorot, Nomoe
+ssl_ratio: 0.1
+
+# optimizer
+
+# dataset
+num_workers: 2
+
+# model
+
+# gpu
+
