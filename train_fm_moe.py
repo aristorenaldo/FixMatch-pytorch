@@ -168,7 +168,7 @@ def main_worker(gpu, ngpus_per_node, args):
         
     model.save_model('latest_model.pth', save_path)
         
-    logging.warning(f"GPU {args.rank} training is FINISHED")
+    logging.warning(f"GPU training is FINISHED")
     
 def path_correction(path):
     return os.path.join(os.path.abspath(os.path.dirname(__file__)),path)
