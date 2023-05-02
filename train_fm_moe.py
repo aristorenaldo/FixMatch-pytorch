@@ -119,7 +119,7 @@ def main_worker(gpu, ngpus_per_node, args):
         
 
     logger.info(f"model_arch: {model}")
-    logger.info(f"Arguments: {args}")
+    logger.info(f"Arguments: {vars(args)}")
     
     cudnn.benchmark = True
 

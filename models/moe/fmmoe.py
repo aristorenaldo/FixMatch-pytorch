@@ -166,7 +166,7 @@ class FmMoeWrapper():
             
         elif arch == "Lorot":
             sup_output, rot_output = self.train_model(input)
-            ssl_loss = ce_loss(rot_output, ssl_label[0], reduction='mean')
+            ssl_loss = ce_loss(rot_output, ssl_label, reduction='mean')
             
         else:
             self.logger.warning("training without gssl because arch error")
