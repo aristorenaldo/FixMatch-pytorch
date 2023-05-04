@@ -38,7 +38,7 @@ def dict_merge(dct, merge_dct):
         # if (k in dct and isinstance(dct[k], dict) ):    
             dict_merge(dct[k], merge_dct[k])
         else:
-            if dct.get(k) is not None:
+            if k in dct.keys():
                 dct[k] = merge_dct[k]
 
 class Config(object):
