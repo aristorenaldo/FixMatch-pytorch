@@ -2,6 +2,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import LambdaLR
 import torch.nn.functional as F
+import torchvision.transforms.functional as TF
 
 import math
 import random
@@ -231,7 +232,7 @@ class SslTransform(object):
             h1 = r
             h2 = r2
         if flip_label:
-            image[:, w1:w2, h1:h2] = torch.flip(image[:, w1:w2, h1:h2], [2])
+            image[:, w1:w2, h1:h2] = TF.hflip(image[:, w1:w2, h1:h2])
         # lorot
         image[:, w1:w2, h1:h2] = torch.rot90(image[:, w1:w2, h1:h2], idx2, [1,2])
         # shuffle channel

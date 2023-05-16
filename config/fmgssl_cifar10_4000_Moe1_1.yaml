@@ -1,7 +1,7 @@
 experimment: 'Fixmatch Gated SSL Cifar10'
 
 # save
-save_name: fmgssl_1
+save_name: fmgssl_12
 
 
 # training and fixmatch 
@@ -18,4 +18,4 @@ num_workers: 2
 # model
 
 # gpu
-
+seed: 6

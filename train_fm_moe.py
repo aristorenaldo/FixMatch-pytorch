@@ -24,7 +24,10 @@ from config_utils import config_parser
 
 
 def main(args):
-
+    '''
+    For (Distributed)DataParallelism,
+    main(args) spawn each process (main_worker) to each GPU.
+    '''
     save_path = os.path.join(args.save_dir, args.save_name)
     if os.path.exists(save_path) and not args.overwrite:
         raise Exception('already existing model: {}'.format(save_path))
@@ -45,14 +48,32 @@ def main(args):
     if args.gpu is not None:
         warnings.warn('You have chosen a specific GPU. This will completely '
                       'disable data parallelism.')
+        
+    if args.dist_url == "env://" and args.world_size == -1:
+        args.world_size = int(os.environ["WORLD_SIZE"])
     
+    #distributed: true if manually selected or if world_size > 1
+    args.distributed = args.world_size > 1 or args.multiprocessing_distributed 
     ngpus_per_node = torch.cuda.device_count() # number of gpus of each node
     
-    main_worker(args.gpu, ngpus_per_node, args)
+    #divide the batch_size according to the number of nodes
+    args.batch_size = int(args.batch_size / args.world_size)
+    
+    if args.multiprocessing_distributed:
+        # now, args.world_size means num of total processes in all nodes
+        args.world_size = ngpus_per_node * args.world_size 
+        
+        #args=(,) means the arguments of main_worker
+        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args)) 
+    else:
+        main_worker(args.gpu, ngpus_per_node, args)
     
 
 def main_worker(gpu, ngpus_per_node, args):
-
+    '''
+    main_worker is conducted on each GPU.
+    '''
+    
     global best_acc1
     args.gpu = gpu
     
@@ -62,12 +83,25 @@ def main_worker(gpu, ngpus_per_node, args):
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     cudnn.deterministic = True
+
+    # SET UP FOR DISTRIBUTED TRAINING
+    if args.distributed:
+        if args.dist_url == "env://" and args.rank == -1:
+            args.rank = int(os.environ["RANK"])
+        if args.multiprocessing_distributed:
+            args.rank = args.rank * ngpus_per_node + gpu # compute global rank
+        
+        # set distributed group:
+        dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+                                world_size=args.world_size, rank=args.rank)
     
     #SET save_path, tensorboard path and logger path
     save_path = os.path.join(args.save_dir, args.save_name)
-   
-    tb_log = TBLog(args.tb_dir, args.save_name)
-    logger_level = "INFO"
+    logger_level = "WARNING"
+    tb_log = None
+    if args.rank % ngpus_per_node == 0:
+        tb_log = TBLog(args.tb_dir, args.save_name)
+        logger_level = "INFO"
     
     logger = get_logger(args.save_name, save_path, logger_level)
     logger.warning(f"USE GPU: {args.gpu} for training")
@@ -112,11 +146,34 @@ def main_worker(gpu, ngpus_per_node, args):
     # SET Devices for (Distributed) DataParallel
     if not torch.cuda.is_available():
         raise Exception('ONLY GPU TRAINING IS SUPPORTED')
- 
-    torch.cuda.set_device(args.gpu)
-    model.train_model = model.train_model.cuda(args.gpu)
-    model.eval_model = model.eval_model.cuda(args.gpu)
+    elif args.distributed:
+        if args.gpu is not None:
+            torch.cuda.set_device(args.gpu)
+            
+            '''
+            batch_size: batch_size per node -> batch_size per gpu
+            workers: workers per node -> workers per gpu
+            '''
+            args.batch_size = int(args.batch_size / ngpus_per_node)
+            model.train_model.cuda(args.gpu)
+            model.train_model = torch.nn.parallel.DistributedDataParallel(model.train_model,
+                                                                          device_ids=[args.gpu])
+            model.eval_model.cuda(args.gpu)
+            
+        else:
+            # if arg.gpu is None, DDP will divide and allocate batch_size
+            # to all available GPUs if device_ids are not set.
+            model.cuda()
+            model = torch.nn.parallel.DistributedDataParallel(model)
+            
+    elif args.gpu is not None:
+        torch.cuda.set_device(args.gpu)
+        model.train_model = model.train_model.cuda(args.gpu)
+        model.eval_model = model.eval_model.cuda(args.gpu)
         
+    else:
+        model.train_model = torch.nn.DataParallel(model.train_model).cuda()
+        model.eval_model = torch.nn.DataParallel(model.eval_model).cuda()
 
     logger.info(f"model_arch: {model}")
     logger.info(f"Arguments: {vars(args)}")
@@ -166,9 +223,11 @@ def main_worker(gpu, ngpus_per_node, args):
     for epoch in range(args.epoch):
         trainer(args, logger=logger)
         
-    model.save_model('latest_model.pth', save_path)
+    if not args.multiprocessing_distributed or \
+                (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+        model.save_model('latest_model.pth', save_path)
         
-    logging.warning(f"GPU training is FINISHED")
+    logging.warning(f"GPU {args.rank} training is FINISHED")
     
 def path_correction(path):
     return os.path.join(os.path.abspath(os.path.dirname(__file__)),path)

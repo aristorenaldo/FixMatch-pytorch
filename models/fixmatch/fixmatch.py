@@ -72,8 +72,12 @@ class FixMatch:
         """
         Momentum update of evaluation model (exponential moving average)
         """
-        for param_train, param_eval in zip(self.train_model.module.parameters(), self.eval_model.parameters()):
-            param_eval.copy_(param_eval * self.ema_m + param_train.detach() * (1-self.ema_m))
+        if hasattr(self.train_model, 'module'):
+            for param_train, param_eval in zip(self.train_model.module.parameters(), self.eval_model.parameters()):
+                param_eval.copy_(param_eval * self.ema_m + param_train.detach() * (1-self.ema_m))
+        else:
+            for param_train, param_eval in zip(self.train_model.parameters(), self.eval_model.parameters()):
+                param_eval.copy_(param_eval * self.ema_m + param_train.detach() * (1-self.ema_m))
         
         for buffer_train, buffer_eval in zip(self.train_model.buffers(), self.eval_model.buffers()):
             buffer_eval.copy_(buffer_train)            

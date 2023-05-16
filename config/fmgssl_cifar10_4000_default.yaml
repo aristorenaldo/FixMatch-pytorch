@@ -49,5 +49,12 @@ leaky_slope: 0.1
 dropout: 0.0
 
 # gpu
-gpu: 0
+
+# multi-gpu & distrtibuted training
+world_size: 1 # number of nodes for distributed training 
+rank: 0
+dist_url: "tcp://127.0.0.1:10001" # url used to set up distributed training
+dist_backend: nccl
 seed: 0
+gpu: 0
+multiprocessing_distributed: False

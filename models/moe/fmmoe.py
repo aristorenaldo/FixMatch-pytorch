@@ -179,7 +179,7 @@ class FmMoeWrapper():
         """
         train function for fixmatch moe
         """
-        # ngpus_per_node = torch.cuda.device_count()
+        ngpus_per_node = torch.cuda.device_count()
 
         #lb: labeled, ulb: unlabeled
         self.train_model.train()
@@ -273,11 +273,13 @@ class FmMoeWrapper():
                 
                 self.print_fn(f"{self.it} iteration, USE_EMA: {hasattr(self, 'eval_model')}, {tb_dict}, BEST_EVAL_ACC: {best_eval_acc}, at {best_it} iters")
 
-            if self.it == best_it:
-                self.save_model('model_best.pth', save_path)
-            
-            if not self.tb_log is None:
-                self.tb_log.update(tb_dict, self.it)
+            if not args.multiprocessing_distributed or \
+                    (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+                if self.it == best_it:
+                    self.save_model('model_best.pth', save_path)
+                
+                if not self.tb_log is None:
+                    self.tb_log.update(tb_dict, self.it)
                 
             self.it +=1
             del tb_dict
