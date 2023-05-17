@@ -115,7 +115,8 @@ def main_worker(gpu, ngpus_per_node, args):
                                 'widen_factor': args.widen_factor,
                                 'leaky_slope': args.leaky_slope,
                                 'bn_momentum': args.bn_momentum,
-                                'dropRate': args.dropout})
+                                'dropRate': args.dropout,
+                                'inplace': args.inplace_relu})
     
     model = moe.FmMoeWrapper(_net_builder,
                              args.arch,
