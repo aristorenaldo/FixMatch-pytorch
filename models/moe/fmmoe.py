@@ -214,6 +214,7 @@ class FmMoeWrapper():
 
             ssl_lb = torch.stack(ssl_lb).cuda(args.gpu) if isinstance(ssl_lb, (tuple, list)) else ssl_lb.cuda(args.gpu)
             inputs_ulb = torch.cat((x_ulb_w, x_ulb_s))
+            torch.autograd.set_detect_anomaly(True)
             with amp_cm():
                 # supervised
                 logits_lb, ssl_loss, ssl_dict = self.__train_gssl(args.arch, x_lb, ssl_lb, return_sup=True)
