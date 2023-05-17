@@ -147,8 +147,8 @@ class FmMoeWrapper():
         ssl_dict ={}
         # choose arch
         if arch == "Moe1": # use rot flip sc
-            sup_output, rot_output, flip_output, sc_output, gate = self.train_model(input)
-            gate = F.softmax(gate, dim=1).mean(dim=0)
+            sup_output, rot_output, flip_output, sc_output, gate_output = self.train_model(input)
+            gate = F.softmax(gate_output, dim=1).mean(dim=0)
             ssl_loss = (ce_loss(rot_output, ssl_label[0], reduction='mean') * gate[0].item()+
                         ce_loss(flip_output, ssl_label[1], reduction='mean') * gate[1].item()+
                         ce_loss(sc_output, ssl_label[2], reduction='mean') * gate[2]).item()
