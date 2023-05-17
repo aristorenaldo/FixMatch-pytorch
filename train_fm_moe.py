@@ -19,7 +19,7 @@ import models.moe as moe
 from datasets.ssl_dataset import SSL_Dataset
 from datasets.data_utils import get_data_loader
 
-from config_utils import config_parser
+
 
 
 
@@ -233,6 +233,7 @@ def path_correction(path):
     return os.path.join(os.path.abspath(os.path.dirname(__file__)),path)
 
 if __name__ == "__main__":
+    from config_utils import config_parser
     import argparse
     parser = argparse.ArgumentParser(description='Semi G-SSL Training')
     parser.add_argument('--path', '-p', type=str, help='config path')
