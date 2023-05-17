@@ -1,5 +1,6 @@
 import yaml
 import json
+from types import SimpleNamespace
 
 def dict2obj(d):
     # checking whether object d is a
@@ -82,7 +83,7 @@ class Config(object):
 class ConfigObj(Config):
     def __init__(self, default_path, config_path=None) -> None:
         super().__init__(default_path, config_path)
-        self._data_obj = dict2obj(self._data)
+        self._data_obj = SimpleNamespace(**self._data)
     def get(self):
         return self._data_obj
     def __str__(self):
@@ -95,6 +96,6 @@ def config_parser(default_path, config_path=None, return_obj=True):
 
 
 if __name__ == "__main__":
-    config = config_parser(default_path='config/defaultex.yaml', config_path='config/ex.yaml')
+    config = config_parser(default_path='./config/fmgssl_cifar10_4000_default.yaml', config_path='config/fmgssl_test.yaml')
     data = config.get()
-    print(config)
+    print(data)
