@@ -164,6 +164,8 @@ def main_worker(gpu, ngpus_per_node, args):
         else:
             # if arg.gpu is None, DDP will divide and allocate batch_size
             # to all available GPUs if device_ids are not set.
+            process_group = torch.distributed.new_group()
+            model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=process_group) 
             model.cuda()
             model = torch.nn.parallel.DistributedDataParallel(model)
             
@@ -199,14 +201,14 @@ def main_worker(gpu, ngpus_per_node, args):
                                               data_sampler = args.train_sampler,
                                               num_iters=args.num_train_iter,
                                               num_workers=args.num_workers, 
-                                              distributed=False)
+                                              distributed=args.distributed)
     
     loader_dict['train_ulb'] = get_data_loader(dset_dict['train_ulb'],
                                                args.batch_size*args.uratio,
                                                data_sampler = args.train_sampler,
                                                num_iters=args.num_train_iter,
                                                num_workers=4*args.num_workers,
-                                               distributed=False)
+                                               distributed=args.distributed)
     
     loader_dict['eval'] = get_data_loader(dset_dict['eval'],
                                           args.eval_batch_size, 
@@ -243,6 +245,8 @@ if __name__ == "__main__":
     config = config_parser(path_correction('config/fmgssl_cifar10_4000_default.yaml'), cli_parser.path)
     args = config.get()
 
+    #
+    assert args.arch in ['Moe1', 'Lorot', 'Nomoe']
     # set save_name
     args.save_name += f'_{args.arch}_{args.dataset}_{args.num_labels}'
     main(args)

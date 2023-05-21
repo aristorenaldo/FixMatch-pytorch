@@ -186,9 +186,8 @@ class SslTransform(object):
 
     Parameter
     ---------
-    transform_all : bool
-        Use all of the SSL transformation (Lorot, Flip, ShuffleChannel) if True, 
-        else use Lorot-I (default True)
+    arch : architecture of Gated-SSL to determine which transformations is used
+        (Moe1, Lorot, Moe1Sc, Moe1Flip)
     
     Returns
     -------
@@ -197,9 +196,10 @@ class SslTransform(object):
     ssl_labels : int | tupple
         SSL label
     '''
-    def __init__(self, transform_all:bool=True) -> None:
-        assert isinstance(transform_all,bool)
-        self.transform_all = transform_all
+    def __init__(self, arch) -> None:
+        assert isinstance(arch,str)
+        assert arch
+        self.arch = arch
 
     def __transform_all(self, image):
         # print(image.shape)
@@ -243,6 +243,75 @@ class SslTransform(object):
 
         return image, ssl_label
     
+    def __transform_picker(self, image):
+        idx = random.randint(0, 3) # select patch
+        idx2 = random.randint(0, 3) # rotation
+        r2 = image.size(1)
+        r = r2 // 2
+        
+        if idx == 0:
+            w1 = 0
+            w2 = r
+            h1 = 0
+            h2 = r
+        elif idx == 1:
+            w1 = 0
+            w2 = r
+            h1 = r
+            h2 = r2
+        elif idx == 2:
+            w1 = r
+            w2 = r2
+            h1 = 0
+            h2 = r
+        elif idx == 3:
+            w1 = r
+            w2 = r2
+            h1 = r
+            h2 = r2
+
+        if self.arch == 'Moe1' or self.arch == 'Nomoe':
+            flip_label = random.randint(0, 1)
+            sc_label = random.randint(0, 5)
+            if flip_label:
+                image[:, w1:w2, h1:h2] = TF.hflip(image[:, w1:w2, h1:h2])
+            # lorot
+            image[:, w1:w2, h1:h2] = torch.rot90(image[:, w1:w2, h1:h2], idx2, [1,2])
+            # shuffle channel
+            image[:, w1:w2, h1:h2] = shuffle_channel(image[:, w1:w2, h1:h2], sc_label)
+
+            rot_label = idx * 4 + idx2
+            ssl_label = (rot_label, flip_label, sc_label)
+
+            return image, ssl_label
+        
+        elif self.arch == 'Lorot':
+            image[:, w1:w2, h1:h2] = torch.rot90(image[:, w1:w2, h1:h2], idx2, [1,2])
+            rot_label = idx * 4 + idx2
+            return image, rot_label
+        
+        elif self.arch == 'Moe1flip':
+            flip_label = random.randint(0, 1)
+            if flip_label:
+                image[:, w1:w2, h1:h2] = TF.hflip(image[:, w1:w2, h1:h2])
+            # lorot
+            image[:, w1:w2, h1:h2] = torch.rot90(image[:, w1:w2, h1:h2], idx2, [1,2])
+            rot_label = idx * 4 + idx2
+            ssl_label = (rot_label, flip_label)
+            return image, ssl_label
+        
+        elif self.arch == 'Moe1sc':
+            sc_label = random.randint(0, 5)
+             # lorot
+            image[:, w1:w2, h1:h2] = torch.rot90(image[:, w1:w2, h1:h2], idx2, [1,2])
+            # shuffle channel
+            image[:, w1:w2, h1:h2] = shuffle_channel(image[:, w1:w2, h1:h2], sc_label)
+            rot_label = idx * 4 + idx2
+            ssl_label = (rot_label, sc_label)
+            return image, ssl_label
+
+        raise Exception('arch not implemented')
+    
     def __transform_lorot(self, image):
         idx = random.randint(0, 3)
         idx2 = random.randint(0, 3)
@@ -274,7 +343,4 @@ class SslTransform(object):
     
     def __call__(self, image: torch.Tensor):
         assert isinstance(image, torch.Tensor)
-        # print(image)
-        if self.transform_all:
-            return self.__transform_all(image)
-        return self.__transform_lorot(image)
+        return self.__transform_picker(image)

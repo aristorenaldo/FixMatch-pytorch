@@ -122,8 +122,8 @@ class SSL_Dataset:
         
         return lb_dset, ulb_dset
     
-    def get_fmgssl_dataset(self, arch, num_labels, index=None, include_lb_to_ulb=True,
-                            use_strong_transform=True, strong_transform=None, 
+    def get_fmgssl_dataset(self, arch, num_labels, ssl_transform, index=None, include_lb_to_ulb=True,
+                            use_strong_transform=True,
                             onehot=False):
         """
         get_fmgssl_dset split training samples into labeled and unlabeled samples.
@@ -153,12 +153,22 @@ class SSL_Dataset:
         lb_dset = BasicDataset(lb_data, lb_targets, num_classes, 
                                transforms.Compose([
                                    transform,
-                                   SslTransform(transform_all= False if arch == 'Lorot' else True)
+                                   ssl_transform
                                ]), 
                                False, None, onehot)
         
         ulb_dset = BasicDataset(ulb_data, ulb_targets, num_classes, 
-                               transform, use_strong_transform, strong_transform, onehot)
+                               transforms.Compose([
+                                   transform,
+                                   ssl_transform
+                               ]),
+                               use_strong_transform, 
+                               transforms.Compose([
+                                   RandAugment(3,5),
+                                   transform,
+                                   ssl_transform
+                               ]),
+                               onehot)
         
         return lb_dset, ulb_dset
 

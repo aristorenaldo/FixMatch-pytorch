@@ -148,7 +148,7 @@ class FmMoeWrapper():
         # choose arch
         if arch == "Moe1": # use rot flip sc
             sup_output, rot_output, flip_output, sc_output, gate_output = self.train_model(input)
-            gate = torch.mean(F.softmax(gate_output, dim=1),dim=0)
+            gate = F.softmax(gate_output, dim=1).mean(dim=0)
             ssl_loss = (ce_loss(rot_output, ssl_label[0], reduction='mean') * gate[0].item()+
                         ce_loss(flip_output, ssl_label[1], reduction='mean') * gate[1].item()+
                         ce_loss(sc_output, ssl_label[2], reduction='mean') * gate[2]).item()
@@ -196,7 +196,7 @@ class FmMoeWrapper():
         scaler = GradScaler()
         amp_cm = autocast if args.amp else contextlib.nullcontext
 
-        for ((x_lb, ssl_lb), y_lb), (x_ulb_w, x_ulb_s, _) in zip(self.loader_dict['train_lb'], self.loader_dict['train_ulb']):
+        for ((x_lb, ssl_lb), y_lb), ((x_ulb_w, ssl_ulb_w), (x_ulb_s, ssl_ulb_s), _) in zip(self.loader_dict['train_lb'], self.loader_dict['train_ulb']):
             # prevent the training iterations exceed args.num_train_iter
             if self.it > args.num_train_iter:
                 break
@@ -206,6 +206,7 @@ class FmMoeWrapper():
             start_run.record()
 
             # data to gpu
+            num_lb = x_lb.shape[0]
             num_ulb = x_ulb_w.shape[0]
             assert num_ulb == x_ulb_s.shape[0]
             
@@ -213,18 +214,23 @@ class FmMoeWrapper():
             y_lb = y_lb.cuda(args.gpu)
 
             ssl_lb = torch.stack(ssl_lb).cuda(args.gpu) if isinstance(ssl_lb, (tuple, list)) else ssl_lb.cuda(args.gpu)
-            inputs_ulb = torch.cat((x_ulb_w, x_ulb_s))
+            ssl_ulb_w = torch.stack(ssl_ulb_w).cuda(args.gpu) if isinstance(ssl_ulb_w, (tuple, list)) else ssl_ulb_w.cuda(args.gpu)
+            ssl_ulb_s = torch.stack(ssl_ulb_s).cuda(args.gpu) if isinstance(ssl_ulb_s, (tuple, list)) else ssl_ulb_s.cuda(args.gpu)
+
+            ssl_labels = torch.cat((ssl_lb, ssl_ulb_w, ssl_ulb_s))
+            inputs = torch.cat((x_lb, x_ulb_w, x_ulb_s))
             # torch.autograd.set_detect_anomaly(True)
             with amp_cm():
                 # supervised
-                logits_lb, ssl_loss, ssl_dict = self.__train_gssl(args.arch, x_lb, ssl_lb, return_sup=True)
-                logits_ulb = self.train_model(inputs_ulb, ssl_task=False)
-                logits_x_ulb_w, logits_x_ulb_s = logits_ulb.chunk(2)
+                logits, ssl_loss, ssl_dict = self.__train_gssl(args.arch, inputs, ssl_labels, return_sup=True)
+                logits_x_lb = logits[:num_lb]
+                logits_x_ulb_w, logits_x_ulb_s = logits[num_lb:].chunk(2)
+                del logits
                 
                 T = self.t_fn(self.it)
                 p_cutoff = self.p_fn(self.it)
 
-                sup_loss = ce_loss(logits_lb, y_lb, reduction='mean')
+                sup_loss = ce_loss(logits_x_lb, y_lb, reduction='mean')
                 unsup_loss, mask = consistency_loss(logits_x_ulb_w, 
                                               logits_x_ulb_s, 
                                               'ce', T, p_cutoff,
