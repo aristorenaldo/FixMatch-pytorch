@@ -217,7 +217,10 @@ class FmMoeWrapper():
             ssl_ulb_w = torch.stack(ssl_ulb_w).cuda(args.gpu) if isinstance(ssl_ulb_w, (tuple, list)) else ssl_ulb_w.cuda(args.gpu)
             ssl_ulb_s = torch.stack(ssl_ulb_s).cuda(args.gpu) if isinstance(ssl_ulb_s, (tuple, list)) else ssl_ulb_s.cuda(args.gpu)
 
-            ssl_labels = torch.cat((ssl_lb, ssl_ulb_w, ssl_ulb_s))
+            if ssl_lb.dim() > 1:
+                ssl_labels = torch.cat((ssl_lb, ssl_ulb_w, ssl_ulb_s), dim=1)
+            else:
+                ssl_labels = torch.cat((ssl_lb, ssl_ulb_w, ssl_ulb_s)) 
             inputs = torch.cat((x_lb, x_ulb_w, x_ulb_s))
             # torch.autograd.set_detect_anomaly(True)
             with amp_cm():
