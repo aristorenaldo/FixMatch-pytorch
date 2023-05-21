@@ -13,7 +13,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 
 from utils import net_builder, get_logger, count_parameters
-from train_utils import TBLog, get_SGD, get_cosine_schedule_with_warmup
+from train_utils import TBLog, get_SGD, get_cosine_schedule_with_warmup, SslTransform
 # from models.fixmatch.fixmatch import FixMatch
 import models.moe as moe
 from datasets.ssl_dataset import SSL_Dataset
@@ -187,7 +187,7 @@ def main_worker(gpu, ngpus_per_node, args):
     # Construct Dataset & DataLoader
     train_dset = SSL_Dataset(name=args.dataset, train=True, 
                              num_classes=args.num_classes, data_dir=args.data_dir)
-    lb_dset, ulb_dset = train_dset.get_fmgssl_dataset(args.arch,num_labels=args.num_labels)
+    lb_dset, ulb_dset = train_dset.get_fmgssl_dataset(args.arch,num_labels=args.num_labels, ssl_transform=SslTransform(args.arch))
     
     _eval_dset = SSL_Dataset(name=args.dataset, train=False, 
                              num_classes=args.num_classes, data_dir=args.data_dir)
