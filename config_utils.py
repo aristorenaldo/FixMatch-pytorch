@@ -80,10 +80,18 @@ class Config(object):
         except (TypeError, AttributeError):
             return default
 
-class ConfigObj(Config):
+class ConfigObj():
     def __init__(self, default_path, config_path=None) -> None:
-        super().__init__(default_path, config_path)
-        self._data_obj = SimpleNamespace(**self._data)
+        cfg = {}
+        if config_path is not None:
+            with open(config_path) as cf_file:
+                cfg = yaml.safe_load( cf_file.read())     
+        
+        with open(default_path) as def_cf_file:
+            default_cfg = yaml.safe_load( def_cf_file.read())
+
+        dict_merge(default_cfg, cfg)
+        self._data_obj = json.loads(json.dumps(default_cfg), object_hook=lambda item: SimpleNamespace(**item))
     def get(self):
         return self._data_obj
     def __str__(self):

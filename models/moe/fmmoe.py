@@ -151,7 +151,7 @@ class FmMoeWrapper():
             gate = F.softmax(gate_output, dim=1).mean(dim=0)
             ssl_loss = (ce_loss(rot_output, ssl_label[0], reduction='mean') * gate[0].item()+
                         ce_loss(flip_output, ssl_label[1], reduction='mean') * gate[1].item()+
-                        ce_loss(sc_output, ssl_label[2], reduction='mean') * gate[2]).item()
+                        ce_loss(sc_output, ssl_label[2], reduction='mean') * gate[2].item())
             ssl_dict['train/gate'] = {
                 'rot': gate[0].detach(),
                 'flip': gate[1].detach(),
